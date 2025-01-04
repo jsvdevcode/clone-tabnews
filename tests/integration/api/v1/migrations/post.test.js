@@ -1,4 +1,3 @@
-import database from "infra/database";
 import orchestrator from "tests/orchestrator";
 
 function httpPostMigrations() {
@@ -9,21 +8,28 @@ function httpPostMigrations() {
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
-  await database.query("drop schema public cascade; create schema public;");
+  await orchestrator.clearDatabase();
 });
 
-test("POST to /api/v1/migrations should return 200", async () => {
-  let response = await httpPostMigrations();
-  expect(response.status).toBe(201);
+describe("POST '/api/v1/migrations'", () => {
+  describe("Anonymous user", () => {
+    describe("Running pending migrations", () => {
+      test("For the first time", async () => {
+        const response = await httpPostMigrations();
+        expect(response.status).toBe(201);
 
-  let content = await response.json();
-  expect(Array.isArray(content)).toBe(true);
-  expect(content.length).toBeGreaterThan(0);
+        const content = await response.json();
+        expect(Array.isArray(content)).toBe(true);
+        expect(content.length).toBeGreaterThan(0);
+      });
+      test("For the second time", async () => {
+        const response = await httpPostMigrations();
+        expect(response.status).toBe(200);
 
-  response = await httpPostMigrations();
-  expect(response.status).toBe(200);
-
-  content = await response.json();
-  expect(Array.isArray(content)).toBe(true);
-  expect(content.length).toBe(0);
+        const content = await response.json();
+        expect(Array.isArray(content)).toBe(true);
+        expect(content.length).toBe(0);
+      });
+    });
+  });
 });
